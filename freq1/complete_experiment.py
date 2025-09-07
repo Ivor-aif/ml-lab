@@ -1,792 +1,627 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-频率特性实验 - 完整实验代码
+"""Complete Frequency Analysis Experiment
 
-该脚本整合了两个实验步骤：
-1. 第一步：神经网络拟合频率函数 (x,y) 映射
-2. 第二步：神经网络直接预测频域参数 {a0, a1, b1, a2, b2, ...}
+This module implements a comprehensive two-step frequency analysis experiment:
+1. Step 1: Neural network learns to fit frequency functions from sample points
+2. Step 2: Neural network learns to predict frequency parameters directly from data points
 
-增强的可视化功能：
-- 训练过程中输出与数据点的演化对比
-- 输出与原函数的差别展示
-- 参数预测精度分析
-- 函数重构质量评估
-
+Features:
+- Enhanced visualization with training evolution comparison
+- Function fitting quality comparison
+- Parameter prediction accuracy analysis
+- Original vs predicted function comparison
+- Comprehensive performance analysis
 """
 
-import os
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
-from typing import Dict, List, Tuple, Optional, Any
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import mean_squared_error, r2_score
 import json
+import os
 from datetime import datetime
-from tqdm import tqdm
-import warnings
-warnings.filterwarnings('ignore')
-
-# 添加项目根目录到路径
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-from config import Config
+from typing import Dict, List, Tuple, Any
+from config import ExperimentConfig as Config
 from data_generator import FrequencyDataGenerator
-from model import FrequencyNet, FrequencyTrainer
-from parameter_model import ParameterPredictionNet, ParameterTrainer
-from utils import setup_logging, save_results, create_directory
+
 
 class CompleteFrequencyExperiment:
-    """
-    完整的频率特性实验类
-    整合两个实验步骤并提供增强的可视化功能
-    """
+    """Complete frequency analysis experiment class"""
     
     def __init__(self, config: Config):
+        """Initialize experiment
+        
+        Args:
+            config: Experiment configuration
+        """
         self.config = config
-        self.logger = setup_logging('complete_experiment')
+        self.generator = FrequencyDataGenerator(config)
         
-        # 创建必要的目录
-        create_directory(self.config.paths['results'])
-        create_directory(self.config.paths['models'])
-        create_directory(self.config.paths['plots'])
+        # Results storage
+        self.step1_results = {}
+        self.step2_results = {}
+        self.training_history = {'step1': [], 'step2': []}
         
-        # 初始化组件
-        self.data_generator = FrequencyDataGenerator(config)
+        # Models
+        self.step1_model = None
+        self.step2_model = None
         
-        # 实验结果存储
-        self.results = {
-            'step1_results': {},  # 第一步实验结果
-            'step2_results': {},  # 第二步实验结果
-            'comparison_metrics': {},  # 对比指标
-            'experiment_config': {
-                'step1_config': config.model_params,
-                'step2_config': config.freq2_params
-            }
-        }
+        # Scalers
+        self.step1_scaler_x = StandardScaler()
+        self.step1_scaler_y = StandardScaler()
+        self.step2_scaler_x = StandardScaler()
+        self.step2_scaler_y = StandardScaler()
         
-        # 可视化历史记录
-        self.visualization_history = {
-            'step1_training_snapshots': [],
-            'step2_training_snapshots': [],
-            'evolution_data': []
-        }
-    
-    def generate_experiment_data(self, num_samples: int = 1000) -> Tuple[Dict, Dict]:
-        """
-        生成实验数据
+        # Data storage
+        self.experiment_data = []
+        
+    def generate_random_parameters(self, num_components: int = 3) -> Dict:
+        """Generate random frequency parameters
         
         Args:
-            num_samples: 样本数量
+            num_components: Number of frequency components
             
         Returns:
-            step1_data: 第一步实验数据
-            step2_data: 第二步实验数据
+            Dictionary of parameters
         """
-        self.logger.info(f"生成 {num_samples} 个实验样本...")
-        
-        # 生成参数和函数数据
-        all_params = []
-        step1_X = []
-        step1_y = []
-        step2_X = []
-        step2_y = []
-        
-        num_components = self.config.freq2_params['num_freq_components']
-        num_points = self.config.freq2_params['num_data_points']
-        x_range = self.config.freq2_params['x_range']
-        noise_level = self.config.freq2_params['data_noise_level']
-        
-        # 生成x坐标
-        x_coords = np.linspace(x_range[0], x_range[1], num_points)
-        
-        for i in tqdm(range(num_samples), desc="生成数据"):
-            # 生成随机参数
-            params = self._generate_random_parameters(num_components)
-            all_params.append(params)
-            
-            # 生成真实函数值
-            y_true = self.data_generator.generate_frequency_function(x_coords, params)
-            
-            # 添加噪声
-            y_noisy = y_true + np.random.normal(0, noise_level, len(y_true))
-            
-            # 第一步数据：(x, y) 映射
-            for j in range(len(x_coords)):
-                step1_X.append([x_coords[j]])
-                step1_y.append([y_noisy[j]])
-            
-            # 第二步数据：数据点 -> 参数
-            xy_data = np.concatenate([x_coords, y_noisy])
-            param_array = self._params_dict_to_array(params, num_components)
-            
-            step2_X.append(xy_data)
-            step2_y.append(param_array)
-        
-        step1_data = {
-            'X': np.array(step1_X),
-            'y': np.array(step1_y),
-            'x_coords': x_coords,
-            'original_functions': all_params
+        params = {
+            'a0': np.random.uniform(-2, 2)
         }
         
-        step2_data = {
-            'X': np.array(step2_X),
-            'y': np.array(step2_y),
-            'x_coords': x_coords,
-            'original_params': all_params
-        }
+        for i in range(1, num_components + 1):
+            params[f'a{i}'] = np.random.uniform(-1, 1)
+            params[f'b{i}'] = np.random.uniform(0, 2*np.pi)
         
-        self.logger.info(f"数据生成完成: Step1 X.shape={step1_data['X'].shape}, Step2 X.shape={step2_data['X'].shape}")
-        return step1_data, step2_data
+        return params
     
-    def run_step1_experiment(self, step1_data: Dict) -> Dict:
-        """
-        运行第一步实验：函数拟合
+    def generate_experiment_data(self, num_experiments: int = 100) -> List[Dict]:
+        """Generate multiple experiment datasets
         
         Args:
-            step1_data: 第一步实验数据
+            num_experiments: Number of experiments to generate
             
         Returns:
-            第一步实验结果
+            List of experiment data dictionaries
         """
-        self.logger.info("开始第一步实验：函数拟合...")
+        print(f"Generating {num_experiments} experiment samples...")
         
-        # 划分数据集
-        X, y = step1_data['X'], step1_data['y']
-        split_idx = int(0.8 * len(X))
-        
-        X_train, X_test = X[:split_idx], X[split_idx:]
-        y_train, y_test = y[:split_idx], y[split_idx:]
-        
-        # 创建模型
-        model = FrequencyNet(
-            input_size=self.config.model_params['input_size'],
-            hidden_size=self.config.model_params['hidden_size'],
-            output_size=self.config.model_params['output_size']
-        )
-        
-        # 创建训练器
-        trainer = FrequencyTrainer(model, self.config)
-        
-        # 训练模型（带可视化回调）
-        history = trainer.train(
-            X_train, y_train, X_test, y_test,
-            visualization_callback=self._step1_visualization_callback
-        )
-        
-        # 评估模型
-        test_loss = trainer.evaluate(X_test, y_test)
-        
-        # 生成预测
-        predictions = trainer.predict(X_test)
-        
-        step1_results = {
-            'model': model,
-            'trainer': trainer,
-            'history': history,
-            'test_loss': test_loss,
-            'predictions': predictions,
-            'test_data': {'X': X_test, 'y': y_test}
-        }
-        
-        self.results['step1_results'] = step1_results
-        self.logger.info(f"第一步实验完成，测试损失: {test_loss:.6f}")
-        return step1_results
-    
-    def run_step2_experiment(self, step2_data: Dict) -> Dict:
-        """
-        运行第二步实验：参数预测
-        
-        Args:
-            step2_data: 第二步实验数据
+        experiments = []
+        for i in range(num_experiments):
+            # Generate random parameters
+            true_params = self.generate_random_parameters()
             
-        Returns:
-            第二步实验结果
-        """
-        self.logger.info("开始第二步实验：参数预测...")
-        
-        # 划分数据集
-        X, y = step2_data['X'], step2_data['y']
-        split_idx = int(0.8 * len(X))
-        val_split_idx = int(0.6 * len(X))
-        
-        X_train = X[val_split_idx:split_idx]
-        y_train = y[val_split_idx:split_idx]
-        X_val = X[:val_split_idx]
-        y_val = y[:val_split_idx]
-        X_test = X[split_idx:]
-        y_test = y[split_idx:]
-        
-        # 创建模型
-        input_size = self.config.freq2_params['input_size']
-        hidden_dims = self.config.freq2_params['hidden_dims']
-        num_components = self.config.freq2_params['num_freq_components']
-        output_size = 1 + 2 * num_components
-        dropout_rate = self.config.freq2_params['dropout_rate']
-        
-        model = ParameterPredictionNet(
-            input_size=input_size,
-            hidden_dims=hidden_dims,
-            output_size=output_size,
-            dropout_rate=dropout_rate
-        )
-        
-        # 创建训练器
-        trainer = ParameterTrainer(model, self.config)
-        
-        # 训练模型（带可视化回调）
-        history = trainer.train(
-            X_train, y_train, X_val, y_val,
-            visualization_callback=self._step2_visualization_callback
-        )
-        
-        # 评估模型
-        metrics = trainer.evaluate(X_test, y_test)
-        
-        # 生成预测样例
-        predictions = []
-        for i in range(min(10, len(X_test))):
-            pred_params = model.predict_parameters(X_test[i:i+1])[0]
-            true_params = step2_data['original_params'][split_idx + i]
+            # Update generator coefficients
+            self.generator.coefficients = true_params
+            self.generator.frequency_components = [
+                (true_params[f'a{j}'], true_params[f'b{j}'], j) 
+                for j in range(1, 4)  # 3 frequency components
+            ]
             
-            predictions.append({
-                'predicted_params': self._array_to_params_dict(pred_params, num_components),
+            # Generate sample points
+            x_samples, y_samples = self.generator.generate_samples(
+                num_samples=self.config.data_params['num_samples'],
+                x_range=self.config.data_params['x_range'],
+                noise_level=self.config.data_params['noise_level']
+            )
+            
+            experiments.append({
+                'id': i,
                 'true_params': true_params,
-                'input_data': X_test[i]
+                'x_samples': x_samples,
+                'y_samples': y_samples
             })
+            
+        self.experiment_data = experiments
+        return experiments
+    
+    def run_step1_experiment(self) -> Dict[str, Any]:
+        """Run Step 1: Function fitting experiment
         
-        step2_results = {
-            'model': model,
-            'trainer': trainer,
-            'history': history,
-            'metrics': metrics,
-            'predictions': predictions,
-            'test_data': {'X': X_test, 'y': y_test, 'original_params': step2_data['original_params'][split_idx:]}
+        Returns:
+            Step 1 results dictionary
+        """
+        print("\n=== Step 1: Function Fitting Experiment ===")
+        
+        # Prepare training data
+        X_train = []
+        y_train = []
+        
+        for exp in self.experiment_data:
+            X_train.append(exp['x_samples'])
+            y_train.append(exp['y_samples'])
+        
+        X_train = np.vstack(X_train)
+        y_train = np.vstack(y_train)
+        
+        # Scale data
+        X_train_scaled = self.step1_scaler_x.fit_transform(X_train)
+        y_train_scaled = self.step1_scaler_y.fit_transform(y_train)
+        
+        # Create and train model
+        self.step1_model = MLPRegressor(
+            hidden_layer_sizes=(self.config.model_params['hidden_dim'],),
+            max_iter=self.config.training_params['num_epochs'],
+            learning_rate_init=self.config.training_params['learning_rate'],
+            random_state=42,
+            early_stopping=True,
+            validation_fraction=0.1
+        )
+        
+        print("Training Step 1 model...")
+        self.step1_model.fit(X_train_scaled, y_train_scaled.ravel())
+        
+        # Evaluate
+        y_pred_scaled = self.step1_model.predict(X_train_scaled)
+        y_pred = self.step1_scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1))
+        
+        mse = mean_squared_error(y_train, y_pred)
+        r2 = r2_score(y_train, y_pred)
+        
+        self.step1_results = {
+            'mse': mse,
+            'r2': r2,
+            'training_loss': self.step1_model.loss_curve_
         }
         
-        self.results['step2_results'] = step2_results
-        self.logger.info(f"第二步实验完成，测试指标: {metrics}")
-        return step2_results
+        print(f"Step 1 Results - MSE: {mse:.6f}, R²: {r2:.4f}")
+        return self.step1_results
     
-    def _step1_visualization_callback(self, epoch: int, model: Any, train_loss: float, val_loss: float):
+    def run_step2_experiment(self) -> Dict[str, Any]:
+        """Run Step 2: Parameter prediction experiment
+        
+        Returns:
+            Step 2 results dictionary
         """
-        第一步实验的可视化回调函数
-        """
-        # 每10个epoch记录一次训练快照
-        if epoch % 10 == 0:
-            snapshot = {
-                'epoch': epoch,
-                'train_loss': train_loss,
-                'val_loss': val_loss,
-                'timestamp': datetime.now()
-            }
-            self.visualization_history['step1_training_snapshots'].append(snapshot)
+        print("\n=== Step 2: Parameter Prediction Experiment ===")
+        
+        # Prepare training data
+        X_train = []  # Flattened sample points
+        y_train = []  # True parameters
+        
+        for exp in self.experiment_data:
+            # Flatten x and y samples into feature vector
+            features = np.concatenate([exp['x_samples'].flatten(), exp['y_samples'].flatten()])
+            X_train.append(features)
+            
+            # Convert parameters dict to array
+            param_array = []
+            for key in sorted(exp['true_params'].keys()):
+                param_array.append(exp['true_params'][key])
+            y_train.append(param_array)
+        
+        X_train = np.array(X_train)
+        y_train = np.array(y_train)
+        
+        # Scale data
+        X_train_scaled = self.step2_scaler_x.fit_transform(X_train)
+        y_train_scaled = self.step2_scaler_y.fit_transform(y_train)
+        
+        # Create and train model
+        self.step2_model = MLPRegressor(
+            hidden_layer_sizes=(128, 64),
+            max_iter=self.config.training_params['num_epochs'],
+            learning_rate_init=self.config.training_params['learning_rate'],
+            random_state=42,
+            early_stopping=True,
+            validation_fraction=0.1
+        )
+        
+        print("Training Step 2 model...")
+        self.step2_model.fit(X_train_scaled, y_train_scaled)
+        
+        # Evaluate
+        y_pred_scaled = self.step2_model.predict(X_train_scaled)
+        y_pred = self.step2_scaler_y.inverse_transform(y_pred_scaled)
+        
+        mse = mean_squared_error(y_train, y_pred)
+        r2 = r2_score(y_train, y_pred)
+        
+        self.step2_results = {
+            'mse': mse,
+            'r2': r2,
+            'training_loss': self.step2_model.loss_curve_,
+            'true_params': y_train,
+            'predicted_params': y_pred
+        }
+        
+        print(f"Step 2 Results - MSE: {mse:.6f}, R²: {r2:.4f}")
+        return self.step2_results
     
-    def _step2_visualization_callback(self, epoch: int, model: Any, train_loss: float, val_loss: float):
-        """
-        第二步实验的可视化回调函数
-        """
-        # 每20个epoch记录一次训练快照
-        if epoch % 20 == 0:
-            snapshot = {
-                'epoch': epoch,
-                'train_loss': train_loss,
-                'val_loss': val_loss,
-                'timestamp': datetime.now()
-            }
-            self.visualization_history['step2_training_snapshots'].append(snapshot)
-    
-    def create_enhanced_visualizations(self, step1_data: Dict, step2_data: Dict):
-        """
-        创建增强的可视化图表
+    def create_enhanced_visualizations(self):
+        """Create comprehensive visualization plots"""
+        print("\nGenerating enhanced visualization plots...")
         
-        Args:
-            step1_data: 第一步实验数据
-            step2_data: 第二步实验数据
-        """
-        self.logger.info("生成增强可视化图表...")
+        # Set matplotlib to use ASCII-only fonts
+        plt.rcParams['font.family'] = 'DejaVu Sans'
+        plt.rcParams['axes.unicode_minus'] = False
         
-        # 设置绘图样式
-        plt.style.use(self.config.visualization_params['style'])
-        sns.set_palette(self.config.visualization_params['color_palette'])
+        # Create plots directory
+        os.makedirs('plots', exist_ok=True)
         
-        # 1. 训练演化对比图
+        # 1. Training Evolution Comparison
         self._plot_training_evolution()
         
-        # 2. 函数拟合质量对比
-        self._plot_function_fitting_comparison(step1_data)
+        # 2. Function Fitting Quality Comparison
+        self._plot_function_fitting_comparison()
         
-        # 3. 参数预测精度分析
-        self._plot_parameter_prediction_analysis(step2_data)
+        # 3. Parameter Prediction Analysis
+        self._plot_parameter_prediction_analysis()
         
-        # 4. 原函数vs预测函数对比
-        self._plot_original_vs_predicted_functions(step2_data)
+        # 4. Original vs Predicted Functions
+        self._plot_original_vs_predicted_functions()
         
-        # 5. 综合性能对比
-        self._plot_comprehensive_performance_comparison()
+        # 5. Comprehensive Performance Analysis
+        self._plot_comprehensive_performance()
         
-        self.logger.info("可视化图表生成完成")
+        print("All visualization plots saved to 'plots/' directory")
     
     def _plot_training_evolution(self):
-        """
-        绘制训练演化过程
-        """
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle('训练演化过程对比', fontsize=16, fontweight='bold')
+        """Plot training loss evolution for both steps"""
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(15, 6))
         
-        # 第一步训练历史
-        if 'step1_results' in self.results and 'history' in self.results['step1_results']:
-            history1 = self.results['step1_results']['history']
-            axes[0, 0].plot(history1['train_loss'], label='训练损失', alpha=0.8, linewidth=2)
-            axes[0, 0].plot(history1['val_loss'], label='验证损失', alpha=0.8, linewidth=2)
-            axes[0, 0].set_title('第一步：函数拟合训练历史', fontweight='bold')
-            axes[0, 0].set_xlabel('Epoch')
-            axes[0, 0].set_ylabel('Loss')
-            axes[0, 0].legend()
-            axes[0, 0].grid(True, alpha=0.3)
-            axes[0, 0].set_yscale('log')
+        # Step 1 training evolution
+        if hasattr(self.step1_model, 'loss_curve_'):
+            ax1.plot(self.step1_model.loss_curve_, 'b-', linewidth=2, label='Training Loss')
+            ax1.set_title('Step 1: Function Fitting Training Evolution')
+            ax1.set_xlabel('Epoch')
+            ax1.set_ylabel('Loss')
+            ax1.grid(True, alpha=0.3)
+            ax1.legend()
         
-        # 第二步训练历史
-        if 'step2_results' in self.results and 'history' in self.results['step2_results']:
-            history2 = self.results['step2_results']['history']
-            axes[0, 1].plot(history2['train_loss'], label='训练损失', alpha=0.8, linewidth=2)
-            if 'val_loss' in history2:
-                axes[0, 1].plot(history2['val_loss'], label='验证损失', alpha=0.8, linewidth=2)
-            axes[0, 1].set_title('第二步：参数预测训练历史', fontweight='bold')
-            axes[0, 1].set_xlabel('Epoch')
-            axes[0, 1].set_ylabel('Loss')
-            axes[0, 1].legend()
-            axes[0, 1].grid(True, alpha=0.3)
-            axes[0, 1].set_yscale('log')
-        
-        # 训练快照对比
-        if self.visualization_history['step1_training_snapshots']:
-            snapshots = self.visualization_history['step1_training_snapshots']
-            epochs = [s['epoch'] for s in snapshots]
-            train_losses = [s['train_loss'] for s in snapshots]
-            val_losses = [s['val_loss'] for s in snapshots]
-            
-            axes[1, 0].plot(epochs, train_losses, 'o-', label='训练损失快照', alpha=0.8, markersize=6)
-            axes[1, 0].plot(epochs, val_losses, 's-', label='验证损失快照', alpha=0.8, markersize=6)
-            axes[1, 0].set_title('第一步训练快照', fontweight='bold')
-            axes[1, 0].set_xlabel('Epoch')
-            axes[1, 0].set_ylabel('Loss')
-            axes[1, 0].legend()
-            axes[1, 0].grid(True, alpha=0.3)
-        
-        if self.visualization_history['step2_training_snapshots']:
-            snapshots = self.visualization_history['step2_training_snapshots']
-            epochs = [s['epoch'] for s in snapshots]
-            train_losses = [s['train_loss'] for s in snapshots]
-            val_losses = [s['val_loss'] for s in snapshots]
-            
-            axes[1, 1].plot(epochs, train_losses, 'o-', label='训练损失快照', alpha=0.8, markersize=6)
-            axes[1, 1].plot(epochs, val_losses, 's-', label='验证损失快照', alpha=0.8, markersize=6)
-            axes[1, 1].set_title('第二步训练快照', fontweight='bold')
-            axes[1, 1].set_xlabel('Epoch')
-            axes[1, 1].set_ylabel('Loss')
-            axes[1, 1].legend()
-            axes[1, 1].grid(True, alpha=0.3)
+        # Step 2 training evolution
+        if hasattr(self.step2_model, 'loss_curve_'):
+            ax2.plot(self.step2_model.loss_curve_, 'r-', linewidth=2, label='Training Loss')
+            ax2.set_title('Step 2: Parameter Prediction Training Evolution')
+            ax2.set_xlabel('Epoch')
+            ax2.set_ylabel('Loss')
+            ax2.grid(True, alpha=0.3)
+            ax2.legend()
         
         plt.tight_layout()
-        plt.savefig(os.path.join(self.config.paths['plots'], 'training_evolution.png'),
-                   dpi=self.config.visualization_params['dpi'], bbox_inches='tight')
-        plt.show()
+        plt.savefig('plots/training_evolution.png', dpi=300, bbox_inches='tight')
+        plt.close()
     
-    def _plot_function_fitting_comparison(self, step1_data: Dict):
-        """
-        绘制函数拟合质量对比
-        """
-        if 'step1_results' not in self.results:
+    def _plot_function_fitting_comparison(self):
+        """Plot function fitting quality comparison"""
+        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
+        
+        # Select first 6 experiments for visualization
+        for i in range(min(6, len(self.experiment_data))):
+            row = i // 3
+            col = i % 3
+            ax = axes[row, col]
+            
+            exp = self.experiment_data[i]
+            
+            # Generate dense x points for smooth curve
+            x_dense = np.linspace(
+                self.config.data_params['x_range'][0],
+                self.config.data_params['x_range'][1],
+                200
+            )
+            
+            # True function
+            # Update generator with true parameters
+            self.generator.coefficients = exp['true_params']
+            self.generator.frequency_components = [
+                (exp['true_params'][f'a{j}'], exp['true_params'][f'b{j}'], j) 
+                for j in range(1, 4)
+            ]
+            y_true = self.generator.frequency_function(x_dense)
+            
+            # Predicted function (using Step 1 model)
+            if self.step1_model is not None:
+                x_dense_scaled = self.step1_scaler_x.transform(x_dense.reshape(-1, 1))
+                y_pred_scaled = self.step1_model.predict(x_dense_scaled)
+                y_pred = self.step1_scaler_y.inverse_transform(y_pred_scaled.reshape(-1, 1)).ravel()
+            else:
+                y_pred = np.zeros_like(y_true)
+            
+            # Plot
+            ax.plot(x_dense, y_true, 'b-', linewidth=2, label='True Function', alpha=0.8)
+            ax.plot(x_dense, y_pred, 'r--', linewidth=2, label='Predicted Function', alpha=0.8)
+            ax.scatter(exp['x_samples'], exp['y_samples'], c='green', s=30, alpha=0.6, label='Sample Points')
+            
+            ax.set_title(f'Experiment {i+1}: Function Fitting')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+        
+        plt.tight_layout()
+        plt.savefig('plots/function_fitting_comparison.png', dpi=300, bbox_inches='tight')
+        plt.close()
+    
+    def _plot_parameter_prediction_analysis(self):
+        """Plot parameter prediction accuracy analysis"""
+        if 'true_params' not in self.step2_results:
+            return
+        
+        true_params = self.step2_results['true_params']
+        pred_params = self.step2_results['predicted_params']
+        
+        num_params = true_params.shape[1]
+        
+        fig, axes = plt.subplots(2, (num_params + 1) // 2, figsize=(15, 10))
+        axes = axes.flatten() if num_params > 1 else [axes]
+        
+        # Generate parameter names dynamically
+        param_names = ['a0']
+        for j in range(1, (num_params + 1) // 2 + 1):
+            param_names.extend([f'a{j}', f'b{j}'])
+        param_names = param_names[:num_params]
+        
+        for i in range(num_params):
+            ax = axes[i]
+            
+            # Scatter plot: true vs predicted
+            ax.scatter(true_params[:, i], pred_params[:, i], alpha=0.6, s=30)
+            
+            # Perfect prediction line
+            min_val = min(true_params[:, i].min(), pred_params[:, i].min())
+            max_val = max(true_params[:, i].max(), pred_params[:, i].max())
+            ax.plot([min_val, max_val], [min_val, max_val], 'r--', linewidth=2, label='Perfect Prediction')
+            
+            # Calculate R²
+            r2 = r2_score(true_params[:, i], pred_params[:, i])
+            
+            ax.set_title(f'Parameter {param_names[i]} (R² = {r2:.3f})')
+            ax.set_xlabel('True Value')
+            ax.set_ylabel('Predicted Value')
+            ax.grid(True, alpha=0.3)
+            ax.legend()
+        
+        # Hide unused subplots
+        for i in range(num_params, len(axes)):
+            axes[i].set_visible(False)
+        
+        plt.tight_layout()
+        plt.savefig('plots/parameter_prediction_analysis.png', dpi=300, bbox_inches='tight')
+        plt.close()
+    
+    def _plot_original_vs_predicted_functions(self):
+        """Plot comparison between original and reconstructed functions from predicted parameters"""
+        if 'predicted_params' not in self.step2_results:
             return
         
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-        fig.suptitle('第一步：函数拟合质量对比（输出 vs 数据点 vs 原函数）', fontsize=16, fontweight='bold')
         
-        axes = axes.flatten()
-        
-        step1_results = self.results['step1_results']
-        model = step1_results['model']
-        x_coords = step1_data['x_coords']
-        original_functions = step1_data['original_functions']
-        
-        # 选择6个样例进行对比
-        num_examples = min(6, len(original_functions))
-        selected_indices = np.random.choice(len(original_functions), num_examples, replace=False)
-        
-        for i, func_idx in enumerate(selected_indices):
-            # 获取原函数参数
-            original_params = original_functions[func_idx]
+        # Select first 6 experiments
+        for i in range(min(6, len(self.experiment_data))):
+            row = i // 3
+            col = i % 3
+            ax = axes[row, col]
             
-            # 生成原函数
-            y_original = self.data_generator.generate_frequency_function(x_coords, original_params)
+            exp = self.experiment_data[i]
             
-            # 生成带噪声的数据点
-            noise_level = self.config.freq2_params['data_noise_level']
-            y_noisy = y_original + np.random.normal(0, noise_level, len(y_original))
+            # Generate dense x points
+            x_dense = np.linspace(
+                self.config.data_params['x_range'][0],
+                self.config.data_params['x_range'][1],
+                200
+            )
             
-            # 模型预测
-            X_pred = np.array([[x] for x in x_coords])
-            y_pred = model.predict(X_pred).flatten()
+            # True function
+            # Update generator with true parameters
+            self.generator.coefficients = exp['true_params']
+            self.generator.frequency_components = [
+                (exp['true_params'][f'a{j}'], exp['true_params'][f'b{j}'], j) 
+                for j in range(1, 4)
+            ]
+            y_true = self.generator.frequency_function(x_dense)
             
-            # 绘制对比
-            axes[i].plot(x_coords, y_original, 'b-', label='原函数', linewidth=2.5, alpha=0.9)
-            axes[i].plot(x_coords, y_pred, 'r--', label='模型输出', linewidth=2.5, alpha=0.9)
-            axes[i].scatter(x_coords, y_noisy, c='green', s=25, alpha=0.7, label='数据点', zorder=5)
+            # Reconstructed function from predicted parameters
+            pred_params_array = self.step2_results['predicted_params'][i]
+            # Generate parameter names dynamically
+            param_names = ['a0']
+            for k in range(1, (len(pred_params_array) + 1) // 2 + 1):
+                param_names.extend([f'a{k}', f'b{k}'])
+            param_names = param_names[:len(pred_params_array)]
+            pred_params_dict = {param_names[j]: pred_params_array[j] 
+                              for j in range(len(pred_params_array))}
             
-            # 计算误差
-            mse_vs_original = np.mean((y_pred - y_original) ** 2)
-            mse_vs_data = np.mean((y_pred - y_noisy) ** 2)
+            # Update generator with predicted parameters
+            self.generator.coefficients = pred_params_dict
+            self.generator.frequency_components = [
+                (pred_params_dict.get(f'a{j}', 0), pred_params_dict.get(f'b{j}', 0), j) 
+                for j in range(1, 4)
+            ]
+            y_reconstructed = self.generator.frequency_function(x_dense)
             
-            axes[i].set_title(f'样例 {i+1}\nMSE(vs原函数): {mse_vs_original:.4f}\nMSE(vs数据): {mse_vs_data:.4f}', 
-                            fontsize=10, fontweight='bold')
-            axes[i].set_xlabel('x')
-            axes[i].set_ylabel('f(x)')
-            axes[i].legend(fontsize=9)
-            axes[i].grid(True, alpha=0.3)
+            # Plot
+            ax.plot(x_dense, y_true, 'b-', linewidth=2, label='Original Function', alpha=0.8)
+            ax.plot(x_dense, y_reconstructed, 'r--', linewidth=2, label='Reconstructed Function', alpha=0.8)
+            ax.scatter(exp['x_samples'], exp['y_samples'], c='green', s=30, alpha=0.6, label='Sample Points')
+            
+            # Calculate reconstruction error
+            mse = mean_squared_error(y_true, y_reconstructed)
+            
+            ax.set_title(f'Experiment {i+1}: Reconstruction (MSE = {mse:.3f})')
+            ax.set_xlabel('x')
+            ax.set_ylabel('y')
+            ax.grid(True, alpha=0.3)
+            ax.legend()
         
         plt.tight_layout()
-        plt.savefig(os.path.join(self.config.paths['plots'], 'function_fitting_comparison.png'),
-                   dpi=self.config.visualization_params['dpi'], bbox_inches='tight')
-        plt.show()
+        plt.savefig('plots/original_vs_predicted_functions.png', dpi=300, bbox_inches='tight')
+        plt.close()
     
-    def _plot_parameter_prediction_analysis(self, step2_data: Dict):
-        """
-        绘制参数预测精度分析
-        """
-        if 'step2_results' not in self.results:
-            return
+    def _plot_comprehensive_performance(self):
+        """Plot comprehensive performance comparison"""
+        fig, ((ax1, ax2), (ax3, ax4)) = plt.subplots(2, 2, figsize=(15, 12))
         
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle('第二步：参数预测精度分析', fontsize=16, fontweight='bold')
+        # 1. MSE Comparison
+        methods = ['Step 1\n(Function Fitting)', 'Step 2\n(Parameter Prediction)']
+        mse_values = [self.step1_results['mse'], self.step2_results['mse']]
         
-        predictions = self.results['step2_results']['predictions']
+        bars1 = ax1.bar(methods, mse_values, color=['skyblue', 'lightcoral'], alpha=0.7)
+        ax1.set_title('Mean Squared Error Comparison')
+        ax1.set_ylabel('MSE')
+        ax1.grid(True, alpha=0.3)
         
-        # 提取参数对比数据
-        param_names = ['a0', 'a1', 'b1', 'a2', 'b2', 'a3', 'b3']
-        true_values = {name: [] for name in param_names}
-        pred_values = {name: [] for name in param_names}
+        # Add value labels on bars
+        for bar, value in zip(bars1, mse_values):
+            ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() + max(mse_values)*0.01,
+                    f'{value:.4f}', ha='center', va='bottom')
         
-        for pred in predictions:
-            true_params = pred['true_params']
-            pred_params = pred['predicted_params']
+        # 2. R² Comparison
+        r2_values = [self.step1_results['r2'], self.step2_results['r2']]
+        
+        bars2 = ax2.bar(methods, r2_values, color=['skyblue', 'lightcoral'], alpha=0.7)
+        ax2.set_title('R² Score Comparison')
+        ax2.set_ylabel('R² Score')
+        ax2.grid(True, alpha=0.3)
+        ax2.set_ylim(0, 1)
+        
+        # Add value labels on bars
+        for bar, value in zip(bars2, r2_values):
+            ax2.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                    f'{value:.4f}', ha='center', va='bottom')
+        
+        # 3. Training Loss Convergence
+        if hasattr(self.step1_model, 'loss_curve_') and hasattr(self.step2_model, 'loss_curve_'):
+            epochs1 = range(1, len(self.step1_model.loss_curve_) + 1)
+            epochs2 = range(1, len(self.step2_model.loss_curve_) + 1)
             
-            for name in param_names:
-                if name in true_params and name in pred_params:
-                    true_values[name].append(true_params[name])
-                    pred_values[name].append(pred_params[name])
+            ax3.plot(epochs1, self.step1_model.loss_curve_, 'b-', linewidth=2, label='Step 1')
+            ax3.plot(epochs2, self.step2_model.loss_curve_, 'r-', linewidth=2, label='Step 2')
+            ax3.set_title('Training Loss Convergence')
+            ax3.set_xlabel('Epoch')
+            ax3.set_ylabel('Loss')
+            ax3.grid(True, alpha=0.3)
+            ax3.legend()
         
-        # 参数散点图对比
-        for i, param_name in enumerate(['a0', 'a1', 'b1', 'a2']):
-            if len(true_values[param_name]) > 0:
-                ax = axes[i//2, i%2]
-                
-                true_vals = np.array(true_values[param_name])
-                pred_vals = np.array(pred_values[param_name])
-                
-                # 散点图
-                ax.scatter(true_vals, pred_vals, alpha=0.7, s=50)
-                
-                # 理想线
-                min_val = min(np.min(true_vals), np.min(pred_vals))
-                max_val = max(np.max(true_vals), np.max(pred_vals))
-                ax.plot([min_val, max_val], [min_val, max_val], 'r--', alpha=0.8, linewidth=2)
-                
-                # 计算相关系数
-                correlation = np.corrcoef(true_vals, pred_vals)[0, 1]
-                mse = np.mean((true_vals - pred_vals) ** 2)
-                
-                ax.set_title(f'参数 {param_name}\n相关系数: {correlation:.3f}, MSE: {mse:.4f}', 
-                           fontweight='bold')
-                ax.set_xlabel(f'真实 {param_name}')
-                ax.set_ylabel(f'预测 {param_name}')
-                ax.grid(True, alpha=0.3)
+        # 4. Parameter Prediction Accuracy (if available)
+        if 'true_params' in self.step2_results:
+            true_params = self.step2_results['true_params']
+            pred_params = self.step2_results['predicted_params']
+            
+            # Generate parameter names dynamically
+            param_names = ['a0']
+            for k in range(1, (true_params.shape[1] + 1) // 2 + 1):
+                param_names.extend([f'a{k}', f'b{k}'])
+            param_names = param_names[:true_params.shape[1]]
+            param_r2_scores = []
+            
+            for i in range(true_params.shape[1]):
+                r2 = r2_score(true_params[:, i], pred_params[:, i])
+                param_r2_scores.append(r2)
+            
+            bars4 = ax4.bar(param_names, param_r2_scores, color='lightgreen', alpha=0.7)
+            ax4.set_title('Parameter Prediction Accuracy (R²)')
+            ax4.set_ylabel('R² Score')
+            ax4.grid(True, alpha=0.3)
+            ax4.set_ylim(0, 1)
+            
+            # Add value labels on bars
+            for bar, value in zip(bars4, param_r2_scores):
+                ax4.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.02,
+                        f'{value:.3f}', ha='center', va='bottom')
         
         plt.tight_layout()
-        plt.savefig(os.path.join(self.config.paths['plots'], 'parameter_prediction_analysis.png'),
-                   dpi=self.config.visualization_params['dpi'], bbox_inches='tight')
-        plt.show()
+        plt.savefig('plots/comprehensive_performance.png', dpi=300, bbox_inches='tight')
+        plt.close()
     
-    def _plot_original_vs_predicted_functions(self, step2_data: Dict):
+    def save_results(self) -> str:
+        """Save experiment results to JSON file
+        
+        Returns:
+            Path to saved results file
         """
-        绘制原函数vs预测函数对比
-        """
-        if 'step2_results' not in self.results:
-            return
+        # Create results directory
+        os.makedirs('results', exist_ok=True)
         
-        fig, axes = plt.subplots(2, 3, figsize=(18, 12))
-        fig.suptitle('第二步：原函数 vs 预测函数对比', fontsize=16, fontweight='bold')
-        
-        axes = axes.flatten()
-        predictions = self.results['step2_results']['predictions']
-        x_coords = step2_data['x_coords']
-        num_points = len(x_coords)
-        
-        for i, pred in enumerate(predictions[:6]):
-            true_params = pred['true_params']
-            pred_params = pred['predicted_params']
-            input_data = pred['input_data']
-            
-            # 提取输入数据点
-            x_input = input_data[:num_points]
-            y_input = input_data[num_points:]
-            
-            # 生成函数
-            y_true = self.data_generator.generate_frequency_function(x_coords, true_params)
-            y_pred = self.data_generator.generate_frequency_function(x_coords, pred_params)
-            
-            # 绘制对比
-            axes[i].plot(x_coords, y_true, 'b-', label='原函数', linewidth=2.5, alpha=0.9)
-            axes[i].plot(x_coords, y_pred, 'r--', label='预测函数', linewidth=2.5, alpha=0.9)
-            axes[i].scatter(x_input, y_input, c='green', s=25, alpha=0.7, label='输入数据点', zorder=5)
-            
-            # 计算误差指标
-            mse_func = np.mean((y_true - y_pred) ** 2)
-            mse_data = np.mean((y_input - y_pred) ** 2)
-            correlation = np.corrcoef(y_true, y_pred)[0, 1]
-            
-            axes[i].set_title(f'样例 {i+1}\nMSE(函数): {mse_func:.4f}\n相关性: {correlation:.3f}', 
-                            fontsize=10, fontweight='bold')
-            axes[i].set_xlabel('x')
-            axes[i].set_ylabel('f(x)')
-            axes[i].legend(fontsize=9)
-            axes[i].grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.config.paths['plots'], 'original_vs_predicted_functions.png'),
-                   dpi=self.config.visualization_params['dpi'], bbox_inches='tight')
-        plt.show()
-    
-    def _plot_comprehensive_performance_comparison(self):
-        """
-        绘制综合性能对比
-        """
-        fig, axes = plt.subplots(2, 2, figsize=(16, 12))
-        fig.suptitle('综合性能对比分析', fontsize=16, fontweight='bold')
-        
-        # 损失对比
-        if 'step1_results' in self.results and 'step2_results' in self.results:
-            step1_final_loss = self.results['step1_results']['test_loss']
-            step2_metrics = self.results['step2_results']['metrics']
-            
-            methods = ['第一步\n(函数拟合)', '第二步\n(参数预测)']
-            losses = [step1_final_loss, step2_metrics.get('test_loss', 0)]
-            
-            axes[0, 0].bar(methods, losses, alpha=0.8, color=['skyblue', 'lightcoral'])
-            axes[0, 0].set_title('最终测试损失对比', fontweight='bold')
-            axes[0, 0].set_ylabel('Loss')
-            axes[0, 0].grid(True, alpha=0.3)
-        
-        # 训练时间对比（如果有记录）
-        if hasattr(self, 'training_times'):
-            axes[0, 1].bar(methods, self.training_times, alpha=0.8, color=['lightgreen', 'orange'])
-            axes[0, 1].set_title('训练时间对比', fontweight='bold')
-            axes[0, 1].set_ylabel('时间 (秒)')
-            axes[0, 1].grid(True, alpha=0.3)
-        
-        # 参数预测精度分布
-        if 'step2_results' in self.results:
-            predictions = self.results['step2_results']['predictions']
-            param_errors = []
-            
-            for pred in predictions:
-                true_params = pred['true_params']
-                pred_params = pred['predicted_params']
-                
-                for param_name in ['a0', 'a1', 'a2']:
-                    if param_name in true_params and param_name in pred_params:
-                        error = abs(true_params[param_name] - pred_params[param_name])
-                        param_errors.append(error)
-            
-            if param_errors:
-                axes[1, 0].hist(param_errors, bins=20, alpha=0.8, color='lightblue', edgecolor='black')
-                axes[1, 0].set_title('参数预测误差分布', fontweight='bold')
-                axes[1, 0].set_xlabel('绝对误差')
-                axes[1, 0].set_ylabel('频次')
-                axes[1, 0].grid(True, alpha=0.3)
-        
-        # 模型复杂度对比
-        if 'step1_results' in self.results and 'step2_results' in self.results:
-            step1_params = sum(p.numel() for p in self.results['step1_results']['model'].parameters())
-            step2_params = sum(p.numel() for p in self.results['step2_results']['model'].parameters())
-            
-            axes[1, 1].bar(['第一步模型', '第二步模型'], [step1_params, step2_params], 
-                          alpha=0.8, color=['gold', 'mediumpurple'])
-            axes[1, 1].set_title('模型参数数量对比', fontweight='bold')
-            axes[1, 1].set_ylabel('参数数量')
-            axes[1, 1].grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(self.config.paths['plots'], 'comprehensive_performance.png'),
-                   dpi=self.config.visualization_params['dpi'], bbox_inches='tight')
-        plt.show()
-    
-    def _generate_random_parameters(self, num_components: int) -> Dict:
-        """
-        生成随机频域参数
-        """
-        bounds = self.config.freq2_params['regularization']['parameter_bounds']
-        
-        params = {
-            'a0': np.random.uniform(bounds['a0'][0], bounds['a0'][1])
+        # Prepare results data
+        results = {
+            'timestamp': datetime.now().isoformat(),
+            'config': {
+                'num_experiments': len(self.experiment_data),
+                'model_params': self.config.model_params,
+                'training_params': self.config.training_params,
+                'data_params': self.config.data_params
+            },
+            'step1_results': {
+                'mse': float(self.step1_results['mse']),
+                'r2': float(self.step1_results['r2'])
+            },
+            'step2_results': {
+                'mse': float(self.step2_results['mse']),
+                'r2': float(self.step2_results['r2'])
+            }
         }
         
-        a_max = bounds['a_max']
-        b_range = bounds['b_range']
+        # Add parameter prediction accuracy if available
+        if 'true_params' in self.step2_results:
+            true_params = self.step2_results['true_params']
+            pred_params = self.step2_results['predicted_params']
+            
+            param_names = ['a0', 'a1', 'b1', 'a2', 'b2'][:true_params.shape[1]]
+            param_accuracies = {}
+            
+            for i, name in enumerate(param_names):
+                r2 = r2_score(true_params[:, i], pred_params[:, i])
+                param_accuracies[name] = float(r2)
+            
+            results['parameter_accuracies'] = param_accuracies
         
-        for i in range(1, num_components + 1):
-            params[f'a{i}'] = np.random.uniform(-a_max, a_max)
-            params[f'b{i}'] = np.random.uniform(b_range[0], b_range[1])
+        # Save to file
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename = f'results/complete_experiment_results_{timestamp}.json'
         
-        return params
+        with open(filename, 'w') as f:
+            json.dump(results, f, indent=2)
+        
+        print(f"Results saved to: {filename}")
+        return filename
     
-    def _params_dict_to_array(self, params: Dict, num_components: int) -> np.ndarray:
-        """
-        将参数字典转换为数组
-        """
-        param_array = [params['a0']]
-        
-        for i in range(1, num_components + 1):
-            param_array.extend([params[f'a{i}'], params[f'b{i}']])
-        
-        return np.array(param_array)
-    
-    def _array_to_params_dict(self, param_array: np.ndarray, num_components: int) -> Dict:
-        """
-        将参数数组转换为字典
-        """
-        params = {'a0': param_array[0]}
-        
-        idx = 1
-        for i in range(1, num_components + 1):
-            params[f'a{i}'] = param_array[idx]
-            params[f'b{i}'] = param_array[idx + 1]
-            idx += 2
-        
-        return params
-    
-    def save_complete_results(self):
-        """
-        保存完整实验结果
-        """
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        results_file = os.path.join(self.config.paths['results'], 
-                                   f'complete_experiment_results_{timestamp}.json')
-        
-        # 转换为可序列化格式
-        serializable_results = self._make_json_serializable(self.results)
-        
-        save_results(serializable_results, results_file)
-        self.logger.info(f"完整实验结果已保存到: {results_file}")
-        
-        # 保存模型
-        if 'step1_results' in self.results:
-            model_file = os.path.join(self.config.paths['models'], 
-                                     f'step1_model_{timestamp}.pth')
-            self.results['step1_results']['trainer'].save_checkpoint(model_file)
-        
-        if 'step2_results' in self.results:
-            model_file = os.path.join(self.config.paths['models'], 
-                                     f'step2_model_{timestamp}.pth')
-            self.results['step2_results']['trainer'].save_checkpoint(model_file)
-    
-    def _make_json_serializable(self, obj):
-        """
-        将对象转换为JSON可序列化格式
-        """
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        elif isinstance(obj, dict):
-            return {key: self._make_json_serializable(value) for key, value in obj.items() 
-                   if key not in ['model', 'trainer']}  # 排除不可序列化的对象
-        elif isinstance(obj, list):
-            return [self._make_json_serializable(item) for item in obj]
-        elif isinstance(obj, (np.integer, np.floating)):
-            return obj.item()
-        elif hasattr(obj, '__dict__'):
-            return str(obj)  # 转换为字符串表示
-        else:
-            return obj
-    
-    def run_complete_experiment(self, num_samples: int = 1000):
-        """
-        运行完整的两步实验
+    def run_complete_experiment(self, num_experiments: int = 800) -> Dict[str, Any]:
+        """Run the complete two-step experiment
         
         Args:
-            num_samples: 样本数量
+            num_experiments: Number of experiments to generate
+            
+        Returns:
+            Complete experiment results
         """
-        self.logger.info("开始完整的频率特性实验...")
+        print("=== Starting Complete Frequency Analysis Experiment ===")
         
-        try:
-            # 1. 生成实验数据
-            step1_data, step2_data = self.generate_experiment_data(num_samples)
-            
-            # 2. 运行第一步实验
-            step1_results = self.run_step1_experiment(step1_data)
-            
-            # 3. 运行第二步实验
-            step2_results = self.run_step2_experiment(step2_data)
-            
-            # 4. 创建增强可视化
-            self.create_enhanced_visualizations(step1_data, step2_data)
-            
-            # 5. 保存结果
-            self.save_complete_results()
-            
-            self.logger.info("完整实验成功完成!")
-            
-            # 打印总结
-            self._print_experiment_summary()
-            
-        except Exception as e:
-            self.logger.error(f"实验过程中发生错误: {str(e)}")
-            raise
-    
-    def _print_experiment_summary(self):
-        """
-        打印实验总结
-        """
-        print("\n" + "=" * 80)
-        print("频率特性实验完整总结")
-        print("=" * 80)
+        # Generate experiment data
+        self.generate_experiment_data(num_experiments)
         
-        if 'step1_results' in self.results:
-            step1_loss = self.results['step1_results']['test_loss']
-            print(f"第一步实验（函数拟合）:")
-            print(f"  - 最终测试损失: {step1_loss:.6f}")
-            print(f"  - 模型类型: 两层全连接网络")
+        # Run both steps
+        step1_results = self.run_step1_experiment()
+        step2_results = self.run_step2_experiment()
         
-        if 'step2_results' in self.results:
-            step2_metrics = self.results['step2_results']['metrics']
-            print(f"\n第二步实验（参数预测）:")
-            print(f"  - 测试指标: {step2_metrics}")
-            print(f"  - 模型类型: 多层感知机")
+        # Create visualizations
+        self.create_enhanced_visualizations()
         
-        print(f"\n可视化图表已保存到: {self.config.paths['plots']}")
-        print(f"实验结果已保存到: {self.config.paths['results']}")
-        print(f"模型文件已保存到: {self.config.paths['models']}")
-        print("\n实验完成! 🎉")
+        # Save results
+        results_file = self.save_results()
+        
+        print("\n=== Experiment Complete ===")
+        print(f"Step 1 (Function Fitting) - MSE: {step1_results['mse']:.6f}, R²: {step1_results['r2']:.4f}")
+        print(f"Step 2 (Parameter Prediction) - MSE: {step2_results['mse']:.6f}, R²: {step2_results['r2']:.4f}")
+        print(f"Results saved to: {results_file}")
+        print("Visualization plots saved to 'plots/' directory")
+        
+        return {
+            'step1': step1_results,
+            'step2': step2_results,
+            'results_file': results_file
+        }
+
 
 def main():
-    """
-    主函数
-    """
-    print("=" * 80)
-    print("频率特性实验 - 完整实验代码")
-    print("整合第一步（函数拟合）和第二步（参数预测）")
-    print("=" * 80)
-    
-    # 初始化配置
+    """Main function to run the complete experiment"""
+    # Load configuration
     config = Config()
     
-    # 创建实验实例
+    # Create and run experiment
     experiment = CompleteFrequencyExperiment(config)
+    results = experiment.run_complete_experiment(num_experiments=800)
     
-    # 运行完整实验
-    experiment.run_complete_experiment(num_samples=800)
-    
-    print("\n完整实验已完成! 请查看生成的图表和结果文件。")
+    return results
 
-if __name__ == "__main__":
+
+if __name__ == '__main__':
     main()

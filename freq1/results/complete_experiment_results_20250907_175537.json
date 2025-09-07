@@ -1,0 +1,62 @@
+{
+  "timestamp": "2025-09-07T17:55:37.011971",
+  "config": {
+    "num_experiments": 800,
+    "model_params": {
+      "input_dim": 1,
+      "hidden_dim": 64,
+      "output_dim": 1,
+      "activation": "relu",
+      "use_bias": true,
+      "dropout_rate": 0.1
+    },
+    "training_params": {
+      "learning_rate": 0.001,
+      "batch_size": 32,
+      "num_epochs": 500,
+      "validation_split": 0.2,
+      "early_stopping_patience": 50,
+      "lr_scheduler": {
+        "type": "step",
+        "step_size": 100,
+        "gamma": 0.8
+      },
+      "optimizer": "adam",
+      "loss_function": "mse"
+    },
+    "data_params": {
+      "coefficients": {
+        "a0": 2.0,
+        "a1": 1.5,
+        "b1": 0.0,
+        "a2": 0.8,
+        "b2": 0.7853981633974483,
+        "a3": 0.4,
+        "b3": 1.5707963267948966
+      },
+      "num_samples": 1000,
+      "num_test_samples": 200,
+      "x_range": [
+        -6.283185307179586,
+        6.283185307179586
+      ],
+      "noise_level": 0.05,
+      "random_seed": 42
+    }
+  },
+  "step1_results": {
+    "mse": 1.851907045903844,
+    "r2": 0.0001692290118140427
+  },
+  "step2_results": {
+    "mse": 1.4783292572553302,
+    "r2": 0.16532120401697478
+  },
+  "parameter_accuracies": {
+    "a0": 0.981088740892244,
+    "a1": -0.0045713585150750635,
+    "b1": 0.04154576173945079,
+    "a2": 0.022595112856111155,
+    "b2": 0.03933232313843105
+  }
+}
