@@ -1,0 +1,226 @@
+{
+  "experiment_name": "deep_generalization_mystery",
+  "timestamp": "20250919_094318",
+  "config": {
+    "polynomial_degree": 3,
+    "n_samples": 30,
+    "noise_std": 0.1,
+    "test_range": [
+      -3,
+      3
+    ],
+    "random_seed": 42,
+    "polynomial_formula": "-0.502x^3 + 1.803x^2 + 0.928x + 0.395",
+    "device": "cpu"
+  },
+  "results": {
+    "L2_W128": {
+      "test_mse": 7.267237222007682,
+      "test_mae": 1.185247245711326,
+      "test_r2": 0.8052766763411994,
+      "oscillation_metrics": {
+        "max_first_derivative": 7.2770269348062255,
+        "mean_abs_first_derivative": 3.9055158090433846,
+        "max_second_derivative": 288.98700850889213,
+        "mean_abs_second_derivative": 2.5275870264588556,
+        "derivative_variance": 18.636151818767164,
+        "sign_changes": "4",
+        "smoothness_score": 0.28347989503857635
+      },
+      "model_params": 16897,
+      "train_mse": 0.03771856160578756,
+      "train_mae": 0.1314896830355008,
+      "train_r2": 0.9926570183783124,
+      "overfitting_ratio": 192.67005189541993,
+      "model_name": "L2_W128",
+      "hidden_dims": [
+        128,
+        128
+      ],
+      "num_layers": 2
+    },
+    "L3_W64": {
+      "test_mse": 6.429754303025777,
+      "test_mae": 1.1174144296354351,
+      "test_r2": 0.8277167663657518,
+      "oscillation_metrics": {
+        "max_first_derivative": 7.743382912626512,
+        "mean_abs_first_derivative": 4.001506788829011,
+        "max_second_derivative": 112.16944171778353,
+        "mean_abs_second_derivative": 2.6335075450107923,
+        "derivative_variance": 20.197935690596665,
+        "sign_changes": "5",
+        "smoothness_score": 0.2752161616873785
+      },
+      "model_params": 8513,
+      "train_mse": 0.020313881020440405,
+      "train_mae": 0.09616205610398557,
+      "train_r2": 0.9960453302393336,
+      "overfitting_ratio": 316.5202305042535,
+      "model_name": "L3_W64",
+      "hidden_dims": [
+        64,
+        64,
+        64
+      ],
+      "num_layers": 3
+    },
+    "L4_W48": {
+      "test_mse": 6.291922069897073,
+      "test_mae": 1.0678058464352316,
+      "test_r2": 0.8314099374735915,
+      "oscillation_metrics": {
+        "max_first_derivative": 8.534298515460303,
+        "mean_abs_first_derivative": 3.9595658467152735,
+        "max_second_derivative": 105.76485807360794,
+        "mean_abs_second_derivative": 3.370495738051644,
+        "derivative_variance": 19.900327479628583,
+        "sign_changes": "1",
+        "smoothness_score": 0.22880699580450742
+      },
+      "model_params": 7201,
+      "train_mse": 0.00783250650089925,
+      "train_mae": 0.0721152378868397,
+      "train_r2": 0.9984751817450264,
+      "overfitting_ratio": 803.3088857538385,
+      "model_name": "L4_W48",
+      "hidden_dims": [
+        48,
+        48,
+        48,
+        48
+      ],
+      "num_layers": 4
+    },
+    "L5_W32": {
+      "test_mse": 6.5564800786990585,
+      "test_mae": 1.1517433377678594,
+      "test_r2": 0.8243211892738671,
+      "oscillation_metrics": {
+        "max_first_derivative": 8.063496515379558,
+        "mean_abs_first_derivative": 4.0653143836604695,
+        "max_second_derivative": 139.22946856190524,
+        "mean_abs_second_derivative": 3.5769467065619627,
+        "derivative_variance": 20.61545222497006,
+        "sign_changes": "3",
+        "smoothness_score": 0.21848626696183754
+      },
+      "model_params": 4321,
+      "train_mse": 0.012936224679885118,
+      "train_mae": 0.08224802386158853,
+      "train_r2": 0.9974815990845249,
+      "overfitting_ratio": 506.8310299908369,
+      "model_name": "L5_W32",
+      "hidden_dims": [
+        32,
+        32,
+        32,
+        32,
+        32
+      ],
+      "num_layers": 5
+    },
+    "L6_W24": {
+      "test_mse": 5.530165684867663,
+      "test_mae": 1.005547519608267,
+      "test_r2": 0.8518209589635795,
+      "oscillation_metrics": {
+        "max_first_derivative": 8.775177650071598,
+        "mean_abs_first_derivative": 4.087154408047471,
+        "max_second_derivative": 139.84332377956767,
+        "mean_abs_second_derivative": 2.4357828417434315,
+        "derivative_variance": 21.20168194313623,
+        "sign_changes": "1",
+        "smoothness_score": 0.29105448337723416
+      },
+      "model_params": 3073,
+      "train_mse": 0.006732659923356843,
+      "train_mae": 0.06711763361010856,
+      "train_r2": 0.998689297895318,
+      "overfitting_ratio": 821.3938841144338,
+      "model_name": "L6_W24",
+      "hidden_dims": [
+        24,
+        24,
+        24,
+        24,
+        24,
+        24
+      ],
+      "num_layers": 6
+    },
+    "L3_Decreasing": {
+      "test_mse": 6.421357785208381,
+      "test_mae": 1.1344643384876614,
+      "test_r2": 0.8279417484059158,
+      "oscillation_metrics": {
+        "max_first_derivative": 7.319105359771284,
+        "mean_abs_first_derivative": 4.00337231176331,
+        "max_second_derivative": 85.7984528972187,
+        "mean_abs_second_derivative": 1.9169123714271408,
+        "derivative_variance": 20.214735333078394,
+        "sign_changes": "4",
+        "smoothness_score": 0.3428282624447631
+      },
+      "model_params": 10625,
+      "train_mse": 0.03890312933493676,
+      "train_mae": 0.140603259865828,
+      "train_r2": 0.9924264088668551,
+      "overfitting_ratio": 165.06018654498607,
+      "model_name": "L3_Decreasing",
+      "hidden_dims": [
+        128,
+        64,
+        32
+      ],
+      "num_layers": 3
+    },
+    "L4_Pyramid": {
+      "test_mse": 4.5036255200354365,
+      "test_mae": 0.9197228493481516,
+      "test_r2": 0.8793267781158765,
+      "oscillation_metrics": {
+        "max_first_derivative": 8.890774228843531,
+        "mean_abs_first_derivative": 4.233404730387446,
+        "max_second_derivative": 144.99789000195472,
+        "mean_abs_second_derivative": 3.4945277480261847,
+        "derivative_variance": 23.322379655440315,
+        "sign_changes": "3",
+        "smoothness_score": 0.22249278590818794
+      },
+      "model_params": 43777,
+      "train_mse": 0.006011622115490278,
+      "train_mae": 0.0630509772403118,
+      "train_r2": 0.9988296682367707,
+      "overfitting_ratio": 749.1531293077863,
+      "model_name": "L4_Pyramid",
+      "hidden_dims": [
+        256,
+        128,
+        64,
+        32
+      ],
+      "num_layers": 4
+    }
+  },
+  "summary": {
+    "total_models": 7,
+    "best_model": {
+      "name": "L4_Pyramid",
+      "test_mse": 4.5036255200354365,
+      "r2_score": 0.8793267781158765
+    },
+    "most_overparameterized": {
+      "name": "L4_Pyramid",
+      "parameters": 43777,
+      "samples_ratio": 1459.2333333333333
+    },
+    "average_overfitting_ratio": 507.84819973022223,
+    "models_with_good_generalization": 0,
+    "parameter_range": {
+      "min": 3073,
+      "max": 43777,
+      "mean": 13486.714285714286
+    }
+  }
+}

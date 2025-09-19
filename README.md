@@ -41,7 +41,8 @@ mlLab/
 │   ├── evaluation/           # 评估工具
 │   └── utils/                # 工具函数
 ├── experiments/              # 实验记录
-│   └── freq1/                # 频率分析实验
+│   ├── freq1/                # 频率分析实验
+│   └── generalization1/      # 深度神经网络泛化实验
 ├── models/                   # 训练好的模型
 ├── results/                  # 实验结果
 └── tests/                    # 测试代码
