@@ -1,0 +1,97 @@
+{
+  "experiment_info": {
+    "timestamp": "2025-09-24T14:24:48.688715",
+    "config": {
+      "lr": 0.01,
+      "epochs": 3000,
+      "training_size": 50,
+      "test_size": 1000,
+      "hidden_layers_width": [
+        100
+      ],
+      "gamma": 1.0,
+      "optimizer": "sgd",
+      "device": "cpu"
+    }
+  },
+  "results": {
+    "x_tan_x": {
+      "final_train_loss": 0.026706378906965256,
+      "final_test_loss": 0.024401241913437843,
+      "condensation_ratio": 0.16404040404040404,
+      "avg_similarity": 0.04765951260924339,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    },
+    "ReLU": {
+      "final_train_loss": 1.5845766029087827e-05,
+      "final_test_loss": 1.6310137652908452e-05,
+      "condensation_ratio": 0.16323232323232323,
+      "avg_similarity": 0.04765790328383446,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    },
+    "Tanh": {
+      "final_train_loss": 3.867847772198729e-05,
+      "final_test_loss": 3.8318688893923536e-05,
+      "condensation_ratio": 0.16363636363636364,
+      "avg_similarity": 0.04764566943049431,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    },
+    "Sigmoid": {
+      "final_train_loss": 0.0002617349964566529,
+      "final_test_loss": 0.00024949436192400753,
+      "condensation_ratio": 0.16444444444444445,
+      "avg_similarity": 0.047644320875406265,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    },
+    "Swish": {
+      "final_train_loss": 2.0861911252723075e-05,
+      "final_test_loss": 2.0751962438225746e-05,
+      "condensation_ratio": 0.16484848484848486,
+      "avg_similarity": 0.04764475300908089,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    },
+    "GELU": {
+      "final_train_loss": 1.939715184562374e-05,
+      "final_test_loss": 1.9721004719031043e-05,
+      "condensation_ratio": 0.16424242424242425,
+      "avg_similarity": 0.04764486476778984,
+      "n_clusters": 10,
+      "config": {
+        "lr": 0.01,
+        "epochs": 3000,
+        "hidden_width": 100,
+        "optimizer": "sgd"
+      }
+    }
+  }
+}

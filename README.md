@@ -42,7 +42,8 @@ mlLab/
 │   └── utils/                # 工具函数
 ├── experiments/              # 实验记录
 │   ├── freq1/                # 频率分析实验
-│   └── generalization1/      # 深度神经网络泛化实验
+│   ├── generalization1/      # 深度神经网络泛化实验
+│   └── condense1/            # 神经网络凝聚现象实验
 ├── models/                   # 训练好的模型
 ├── results/                  # 实验结果
 └── tests/                    # 测试代码
@@ -80,6 +81,28 @@ jupyter lab
 # 或运行特定实验
 python src/experiments/your_experiment.py
 ```
+
+## 实验项目
+
+### 1. 频率分析实验 (freq1/)
+- **目标**: 研究神经网络对不同频率信号的学习能力
+- **特点**: 包含完整的数据生成、模型训练和结果分析流程
+- **文档**: 详见 `freq1/experiment_report.md`
+
+### 2. 深度神经网络泛化实验 (generalization1/)
+- **目标**: 探索深度神经网络的泛化能力和性能边界
+- **特点**: 多维度评估网络在不同条件下的表现
+- **文档**: 详见 `generalization1/experiment_report.md`
+
+### 3. 神经网络凝聚现象实验 (condense1/)
+- **目标**: 研究不同激活函数对神经网络参数凝聚现象的影响
+- **特色**: 包含自定义激活函数 σ(x) = x * tan(x) 的深入分析
+- **功能**: 
+  - 多种激活函数对比实验 (ReLU, Tanh, Sigmoid, Swish, GELU, x_tan_x)
+  - 参数相似度热力图可视化
+  - 凝聚现象定量分析
+  - 训练过程动态监控
+- **文档**: 详见 `condense1/experiment_report.md`
 
 ## 主要功能
 
