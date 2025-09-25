@@ -1,0 +1,66 @@
+2025-09-25 13:25:39,360 - root - INFO - Starting experiment: matrix_factorization
+2025-09-25 13:25:39,360 - root - INFO - Starting Matrix Factorization Experiment
+2025-09-25 13:25:39,361 - root - INFO - Running sample complexity analysis...
+2025-09-25 13:32:26,294 - root - INFO - Analyzing initialization effects...
+2025-09-25 13:32:26,294 - root - INFO - Creating visualizations...
+2025-09-25 13:32:28,008 - root - INFO - Plot saved to plots\matrix_factorization\matrix_factorization_analysis.png
+2025-09-25 13:32:30,617 - root - INFO - Plot saved to plots\matrix_factorization\matrix_reconstruction_comparison.png
+2025-09-25 13:32:30,635 - root - INFO - optimistic_bound: 2322
+2025-09-25 13:32:30,636 - root - INFO - optimal_init_scale: 0.1
+2025-09-25 13:32:30,636 - root - INFO - optimal_sample_efficiency: 21
+2025-09-25 13:32:30,636 - root - INFO - achieves_optimistic_bound: True
+2025-09-25 13:32:30,638 - root - INFO - Results saved to results\matrix_factorization\matrix_factorization_results.json
+2025-09-25 13:32:30,641 - root - INFO - Results saved to results\matrix_factorization\matrix_factorization_detailed.json
+2025-09-25 13:32:30,641 - root - INFO - Experiment matrix_factorization completed in 411.28 seconds
+2025-09-25 13:32:30,645 - root - INFO - Starting experiment: matrix_completion
+2025-09-25 13:32:30,646 - root - INFO - Starting Matrix Completion Experiment
+2025-09-25 13:32:30,646 - root - INFO - Running position effect analysis...
+2025-09-25 13:51:12,694 - root - INFO - Analyzing pattern properties...
+2025-09-25 13:51:12,698 - root - INFO - Creating visualizations...
+2025-09-25 13:51:14,146 - root - INFO - Plot saved to plots\matrix_completion\matrix_completion_analysis.png
+2025-09-25 13:51:16,541 - root - INFO - Plot saved to plots\matrix_completion\observation_patterns.png
+2025-09-25 13:51:17,084 - root - INFO - Plot saved to plots\matrix_completion\sample_complexity_comparison.png
+2025-09-25 13:51:17,105 - root - INFO - best_strategy: corners
+2025-09-25 13:51:17,105 - root - INFO - best_average_error: 1.039668413964757
+2025-09-25 13:51:17,106 - root - INFO - correlation_row_coverage: -0.02451160395161032
+2025-09-25 13:51:17,106 - root - INFO - correlation_col_coverage: 0.008460235606096808
+2025-09-25 13:51:17,106 - root - INFO - correlation_row_entropy: -0.031128595219017292
+2025-09-25 13:51:17,106 - root - INFO - correlation_col_entropy: -0.0010008726154774985
+2025-09-25 13:51:17,106 - root - INFO - correlation_clustering_score: 0.039122242484065574
+2025-09-25 13:51:17,107 - root - INFO - correlation_pattern_uniformity: -0.016678655602819347
+2025-09-25 13:51:17,108 - root - INFO - Results saved to results\matrix_completion\matrix_completion_results.json
+2025-09-25 13:51:17,134 - root - INFO - Results saved to results\matrix_completion\matrix_completion_detailed.json
+2025-09-25 13:51:17,135 - root - INFO - Experiment matrix_completion completed in 1126.49 seconds
+2025-09-25 13:51:17,140 - root - INFO - Using device: cpu
+2025-09-25 13:51:17,140 - root - INFO - Starting experiment: neural_network
+2025-09-25 13:51:17,140 - root - INFO - Starting Neural Network Complexity Verification Experiment
+2025-09-25 13:51:17,227 - root - INFO - polynomial: Optimistic complexity = 1451
+2025-09-25 13:51:17,235 - root - INFO - trigonometric: Optimistic complexity = 1675
+2025-09-25 13:51:17,242 - root - INFO - piecewise_linear: Optimistic complexity = 1499
+2025-09-25 13:51:17,249 - root - INFO - high_frequency: Optimistic complexity = 1606
+2025-09-25 13:51:17,256 - root - INFO - composite: Optimistic complexity = 1165
+2025-09-25 13:51:17,257 - root - INFO - Running sample complexity analysis for polynomial
+2025-09-25 14:00:56,072 - root - INFO - polynomial_optimistic_bound: 1451
+2025-09-25 14:00:56,073 - root - INFO - polynomial_min_samples: 20
+2025-09-25 14:00:56,073 - root - INFO - Running sample complexity analysis for trigonometric
+2025-09-25 14:19:12,300 - root - INFO - trigonometric_optimistic_bound: 1675
+2025-09-25 14:19:12,300 - root - INFO - trigonometric_min_samples: 150
+2025-09-25 14:19:12,301 - root - INFO - Running sample complexity analysis for piecewise_linear
+2025-09-25 14:32:25,997 - root - INFO - piecewise_linear_optimistic_bound: 1499
+2025-09-25 14:32:25,997 - root - INFO - piecewise_linear_min_samples: 90
+2025-09-25 14:32:25,997 - root - INFO - Running sample complexity analysis for high_frequency
+2025-09-25 14:51:07,081 - root - INFO - high_frequency_optimistic_bound: 1606
+2025-09-25 14:51:07,081 - root - INFO - high_frequency_min_samples: Not achieved
+2025-09-25 14:51:07,082 - root - INFO - Running sample complexity analysis for composite
+2025-09-25 15:10:32,457 - root - INFO - composite_optimistic_bound: 1165
+2025-09-25 15:10:32,458 - root - INFO - composite_min_samples: Not achieved
+2025-09-25 15:10:32,459 - root - INFO - Creating neural network visualizations...
+2025-09-25 15:10:35,162 - root - INFO - Plot saved to plots\neural_network\neural_network_sample_complexity.png
+2025-09-25 15:10:35,833 - root - INFO - Plot saved to plots\neural_network\neural_network_convergence_rates.png
+2025-09-25 15:10:36,546 - root - INFO - Plot saved to plots\neural_network\optimistic_bound_comparison.png
+2025-09-25 15:10:36,998 - root - INFO - Plot saved to plots\neural_network\bound_violation_analysis.png
+2025-09-25 15:10:37,017 - root - INFO - Results saved to results\neural_network\neural_network_results.json
+2025-09-25 15:10:37,028 - root - INFO - Results saved to results\neural_network\neural_network_detailed.json
+2025-09-25 15:10:37,028 - root - INFO - Experiment neural_network completed in 4759.89 seconds
+2025-09-25 15:10:37,029 - root - ERROR - Report generation failed: -1
+2025-09-25 15:10:37,064 - root - INFO - Results saved to results\suite\optimistic_estimation_complete.json

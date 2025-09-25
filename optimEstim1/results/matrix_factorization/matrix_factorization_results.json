@@ -1,0 +1,10 @@
+{
+  "optimistic_bound": 2322,
+  "optimal_init_scale": 0.1,
+  "optimal_sample_efficiency": 21,
+  "achieves_optimistic_bound": true,
+  "experiment_name": "matrix_factorization",
+  "start_time": 1758777939.360577,
+  "end_time": null,
+  "duration": null
+}

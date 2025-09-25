@@ -1,0 +1,14 @@
+{
+  "best_strategy": "corners",
+  "best_average_error": 1.039668413964757,
+  "correlation_row_coverage": -0.02451160395161032,
+  "correlation_col_coverage": 0.008460235606096808,
+  "correlation_row_entropy": -0.031128595219017292,
+  "correlation_col_entropy": -0.0010008726154774985,
+  "correlation_clustering_score": 0.039122242484065574,
+  "correlation_pattern_uniformity": -0.016678655602819347,
+  "experiment_name": "matrix_completion",
+  "start_time": 1758778350.645842,
+  "end_time": null,
+  "duration": null
+}

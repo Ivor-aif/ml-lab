@@ -1,0 +1,16 @@
+{
+  "polynomial_optimistic_bound": 1451,
+  "polynomial_min_samples": 20,
+  "trigonometric_optimistic_bound": 1675,
+  "trigonometric_min_samples": 150,
+  "piecewise_linear_optimistic_bound": 1499,
+  "piecewise_linear_min_samples": 90,
+  "high_frequency_optimistic_bound": 1606,
+  "high_frequency_min_samples": "Not achieved",
+  "composite_optimistic_bound": 1165,
+  "composite_min_samples": "Not achieved",
+  "experiment_name": "neural_network",
+  "start_time": 1758779477.1404517,
+  "end_time": null,
+  "duration": null
+}
